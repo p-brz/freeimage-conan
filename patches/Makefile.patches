@@ -1,0 +1,17 @@
+FLAGS = 
+
+ifdef NO_SWAB
+    SRCS += swab.c
+    FLAGS += -DNO_SWAB
+endif
+
+ifdef ANDROID
+    $(info "Building for android")
+    
+    CPU_FEATURES := $(ANDROID_NDK_HOME)/sources/android/cpufeatures
+    SRCS += $(CPU_FEATURES)/cpu-features.c
+    FLAGS += -I$(CPU_FEATURES)    
+endif
+
+CFLAGS += $(FLAGS)
+CXXFLAGS += $(FLAGS)
