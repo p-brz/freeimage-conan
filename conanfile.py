@@ -33,6 +33,10 @@ class FreeImageConan(ConanFile):
     UNZIPPED_DIR = "FreeImage"
     FILE_SHA = 'fbfc65e39b3d4e2cb108c4ffa8c41fd02c07d4d436c594fff8dab1a6d5297f89'
 
+    def configure(self):
+        if self.settings.compiler == "Visual Studio":
+            self.options.use_cxx_wrapper = False
+
     def source(self):
         zip_name = self.name + ".zip"
 
