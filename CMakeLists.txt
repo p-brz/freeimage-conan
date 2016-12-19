@@ -73,6 +73,7 @@ set(FreeImage_SOURCES
 	Source/FreeImage/tmoDrago03.cpp
 	Source/FreeImage/tmoFattal02.cpp
 	Source/FreeImage/tmoReinhard05.cpp
+	Source/FreeImage/LFPQuantizer.cpp
 	Source/FreeImageIO.h
 	Source/FreeImageToolkit/BSplineRotate.cpp
 	Source/FreeImageToolkit/Background.cpp
@@ -155,9 +156,13 @@ set(FreeImage_SOURCES
 	Source/LibOpenJPEG/dwt.h
 	Source/LibOpenJPEG/event.c
 	Source/LibOpenJPEG/event.h
+	Source/LibOpenJPEG/function_list.c
+	Source/LibOpenJPEG/function_list.h
 	Source/LibOpenJPEG/image.c
 	Source/LibOpenJPEG/image.h
-    Source/LibOpenJPEG/indexbox_manager.h
+	Source/LibOpenJPEG/indexbox_manager.h
+	Source/LibOpenJPEG/invert.c
+	Source/LibOpenJPEG/invert.h
 	Source/LibOpenJPEG/j2k.c
 	Source/LibOpenJPEG/j2k.h
 	Source/LibOpenJPEG/jp2.c
@@ -297,9 +302,8 @@ set(FreeImage_SOURCES
 	Source/OpenEXR/Iex/IexThrowErrnoExc.cpp
 	Source/OpenEXR/Iex/IexThrowErrnoExc.h
 	Source/OpenEXR/IlmBaseConfig.h
-    Source/OpenEXR/IlmImf/b44ExpLogTable.h
-    Source/OpenEXR/IlmImf/ImfAcesFile.cpp
-    Source/OpenEXR/IlmImf/ImfAcesFile.h
+	Source/OpenEXR/IlmImf/ImfAcesFile.cpp
+	Source/OpenEXR/IlmImf/ImfAcesFile.h
 	Source/OpenEXR/IlmImf/ImfArray.h
 	Source/OpenEXR/IlmImf/ImfAttribute.cpp
 	Source/OpenEXR/IlmImf/ImfAttribute.h
@@ -314,10 +318,13 @@ set(FreeImage_SOURCES
 	Source/OpenEXR/IlmImf/ImfChannelList.h
 	Source/OpenEXR/IlmImf/ImfChannelListAttribute.cpp
 	Source/OpenEXR/IlmImf/ImfChannelListAttribute.h
+	Source/OpenEXR/IlmImf/ImfCheckedArithmetic.h
 	Source/OpenEXR/IlmImf/ImfChromaticities.cpp
 	Source/OpenEXR/IlmImf/ImfChromaticities.h
 	Source/OpenEXR/IlmImf/ImfChromaticitiesAttribute.cpp
 	Source/OpenEXR/IlmImf/ImfChromaticitiesAttribute.h
+	Source/OpenEXR/IlmImf/ImfCompositeDeepScanLine.cpp
+	Source/OpenEXR/IlmImf/ImfCompositeDeepScanLine.h
 	Source/OpenEXR/IlmImf/ImfCompression.h
 	Source/OpenEXR/IlmImf/ImfCompressionAttribute.cpp
 	Source/OpenEXR/IlmImf/ImfCompressionAttribute.h
@@ -325,18 +332,54 @@ set(FreeImage_SOURCES
 	Source/OpenEXR/IlmImf/ImfCompressor.h
 	Source/OpenEXR/IlmImf/ImfConvert.cpp
 	Source/OpenEXR/IlmImf/ImfConvert.h
+	Source/OpenEXR/IlmImf/ImfDeepCompositing.cpp
+	Source/OpenEXR/IlmImf/ImfDeepCompositing.h
+	Source/OpenEXR/IlmImf/ImfDeepFrameBuffer.cpp
+	Source/OpenEXR/IlmImf/ImfDeepFrameBuffer.h
+	Source/OpenEXR/IlmImf/ImfDeepImageState.h
+	Source/OpenEXR/IlmImf/ImfDeepImageStateAttribute.cpp
+	Source/OpenEXR/IlmImf/ImfDeepImageStateAttribute.h
+	Source/OpenEXR/IlmImf/ImfDeepScanLineInputFile.cpp
+	Source/OpenEXR/IlmImf/ImfDeepScanLineInputFile.h
+	Source/OpenEXR/IlmImf/ImfDeepScanLineInputPart.cpp
+	Source/OpenEXR/IlmImf/ImfDeepScanLineInputPart.h
+	Source/OpenEXR/IlmImf/ImfDeepScanLineOutputFile.cpp
+	Source/OpenEXR/IlmImf/ImfDeepScanLineOutputFile.h
+	Source/OpenEXR/IlmImf/ImfDeepScanLineOutputPart.cpp
+	Source/OpenEXR/IlmImf/ImfDeepScanLineOutputPart.h
+	Source/OpenEXR/IlmImf/ImfDeepTiledInputFile.cpp
+	Source/OpenEXR/IlmImf/ImfDeepTiledInputFile.h
+	Source/OpenEXR/IlmImf/ImfDeepTiledInputPart.cpp
+	Source/OpenEXR/IlmImf/ImfDeepTiledInputPart.h
+	Source/OpenEXR/IlmImf/ImfDeepTiledOutputFile.cpp
+	Source/OpenEXR/IlmImf/ImfDeepTiledOutputFile.h
+	Source/OpenEXR/IlmImf/ImfDeepTiledOutputPart.cpp
+	Source/OpenEXR/IlmImf/ImfDeepTiledOutputPart.h
 	Source/OpenEXR/IlmImf/ImfDoubleAttribute.cpp
 	Source/OpenEXR/IlmImf/ImfDoubleAttribute.h
+	Source/OpenEXR/IlmImf/ImfDwaCompressor.cpp
+	Source/OpenEXR/IlmImf/ImfDwaCompressor.h
+	Source/OpenEXR/IlmImf/ImfDwaCompressorSimd.h
 	Source/OpenEXR/IlmImf/ImfEnvmap.cpp
 	Source/OpenEXR/IlmImf/ImfEnvmap.h
 	Source/OpenEXR/IlmImf/ImfEnvmapAttribute.cpp
 	Source/OpenEXR/IlmImf/ImfEnvmapAttribute.h
+	Source/OpenEXR/IlmImf/ImfExport.h
+	Source/OpenEXR/IlmImf/ImfFastHuf.cpp
+	Source/OpenEXR/IlmImf/ImfFastHuf.h
 	Source/OpenEXR/IlmImf/ImfFloatAttribute.cpp
 	Source/OpenEXR/IlmImf/ImfFloatAttribute.h
+	Source/OpenEXR/IlmImf/ImfFloatVectorAttribute.cpp
+	Source/OpenEXR/IlmImf/ImfFloatVectorAttribute.h
+	Source/OpenEXR/IlmImf/ImfForward.h
 	Source/OpenEXR/IlmImf/ImfFrameBuffer.cpp
 	Source/OpenEXR/IlmImf/ImfFrameBuffer.h
 	Source/OpenEXR/IlmImf/ImfFramesPerSecond.cpp
 	Source/OpenEXR/IlmImf/ImfFramesPerSecond.h
+	Source/OpenEXR/IlmImf/ImfGenericInputFile.cpp
+	Source/OpenEXR/IlmImf/ImfGenericInputFile.h
+	Source/OpenEXR/IlmImf/ImfGenericOutputFile.cpp
+	Source/OpenEXR/IlmImf/ImfGenericOutputFile.h
 	Source/OpenEXR/IlmImf/ImfHeader.cpp
 	Source/OpenEXR/IlmImf/ImfHeader.h
 	Source/OpenEXR/IlmImf/ImfHuf.cpp
@@ -345,6 +388,11 @@ set(FreeImage_SOURCES
 	Source/OpenEXR/IlmImf/ImfIO.h
 	Source/OpenEXR/IlmImf/ImfInputFile.cpp
 	Source/OpenEXR/IlmImf/ImfInputFile.h
+	Source/OpenEXR/IlmImf/ImfInputPart.cpp
+	Source/OpenEXR/IlmImf/ImfInputPart.h
+	Source/OpenEXR/IlmImf/ImfInputPartData.cpp
+	Source/OpenEXR/IlmImf/ImfInputPartData.h
+	Source/OpenEXR/IlmImf/ImfInputStreamMutex.h
 	Source/OpenEXR/IlmImf/ImfInt64.h
 	Source/OpenEXR/IlmImf/ImfIntAttribute.cpp
 	Source/OpenEXR/IlmImf/ImfIntAttribute.h
@@ -361,13 +409,27 @@ set(FreeImage_SOURCES
 	Source/OpenEXR/IlmImf/ImfMatrixAttribute.h
 	Source/OpenEXR/IlmImf/ImfMisc.cpp
 	Source/OpenEXR/IlmImf/ImfMisc.h
-    Source/OpenEXR/IlmImf/ImfMultiView.cpp
-    Source/OpenEXR/IlmImf/ImfMultiView.h
+	Source/OpenEXR/IlmImf/ImfMultiPartInputFile.cpp
+	Source/OpenEXR/IlmImf/ImfMultiPartInputFile.h
+	Source/OpenEXR/IlmImf/ImfMultiPartOutputFile.cpp
+	Source/OpenEXR/IlmImf/ImfMultiPartOutputFile.h
+	Source/OpenEXR/IlmImf/ImfMultiView.cpp
+	Source/OpenEXR/IlmImf/ImfMultiView.h
 	Source/OpenEXR/IlmImf/ImfName.h
+	Source/OpenEXR/IlmImf/ImfNamespace.h
 	Source/OpenEXR/IlmImf/ImfOpaqueAttribute.cpp
 	Source/OpenEXR/IlmImf/ImfOpaqueAttribute.h
+	Source/OpenEXR/IlmImf/ImfOptimizedPixelReading.h
 	Source/OpenEXR/IlmImf/ImfOutputFile.cpp
 	Source/OpenEXR/IlmImf/ImfOutputFile.h
+	Source/OpenEXR/IlmImf/ImfOutputPart.cpp
+	Source/OpenEXR/IlmImf/ImfOutputPart.h
+	Source/OpenEXR/IlmImf/ImfOutputPartData.cpp
+	Source/OpenEXR/IlmImf/ImfOutputPartData.h
+	Source/OpenEXR/IlmImf/ImfOutputStreamMutex.h
+	Source/OpenEXR/IlmImf/ImfPartHelper.h
+	Source/OpenEXR/IlmImf/ImfPartType.cpp
+	Source/OpenEXR/IlmImf/ImfPartType.h
 	Source/OpenEXR/IlmImf/ImfPixelType.h
 	Source/OpenEXR/IlmImf/ImfPizCompressor.cpp
 	Source/OpenEXR/IlmImf/ImfPizCompressor.h
@@ -386,18 +448,23 @@ set(FreeImage_SOURCES
 	Source/OpenEXR/IlmImf/ImfRgbaFile.h
 	Source/OpenEXR/IlmImf/ImfRgbaYca.cpp
 	Source/OpenEXR/IlmImf/ImfRgbaYca.h
+	Source/OpenEXR/IlmImf/ImfRle.cpp
+	Source/OpenEXR/IlmImf/ImfRle.h
 	Source/OpenEXR/IlmImf/ImfRleCompressor.cpp
 	Source/OpenEXR/IlmImf/ImfRleCompressor.h
 	Source/OpenEXR/IlmImf/ImfScanLineInputFile.cpp
 	Source/OpenEXR/IlmImf/ImfScanLineInputFile.h
+	Source/OpenEXR/IlmImf/ImfSimd.h
 	Source/OpenEXR/IlmImf/ImfStandardAttributes.cpp
 	Source/OpenEXR/IlmImf/ImfStandardAttributes.h
 	Source/OpenEXR/IlmImf/ImfStdIO.cpp
 	Source/OpenEXR/IlmImf/ImfStdIO.h
 	Source/OpenEXR/IlmImf/ImfStringAttribute.cpp
 	Source/OpenEXR/IlmImf/ImfStringAttribute.h
-    Source/OpenEXR/IlmImf/ImfStringVectorAttribute.cpp
-    Source/OpenEXR/IlmImf/ImfStringVectorAttribute.h
+	Source/OpenEXR/IlmImf/ImfStringVectorAttribute.cpp
+	Source/OpenEXR/IlmImf/ImfStringVectorAttribute.h
+	Source/OpenEXR/IlmImf/ImfSystemSpecific.cpp
+	Source/OpenEXR/IlmImf/ImfSystemSpecific.h
 	Source/OpenEXR/IlmImf/ImfTestFile.cpp
 	Source/OpenEXR/IlmImf/ImfTestFile.h
 	Source/OpenEXR/IlmImf/ImfThreading.cpp
@@ -409,10 +476,14 @@ set(FreeImage_SOURCES
 	Source/OpenEXR/IlmImf/ImfTileOffsets.h
 	Source/OpenEXR/IlmImf/ImfTiledInputFile.cpp
 	Source/OpenEXR/IlmImf/ImfTiledInputFile.h
+	Source/OpenEXR/IlmImf/ImfTiledInputPart.cpp
+	Source/OpenEXR/IlmImf/ImfTiledInputPart.h
 	Source/OpenEXR/IlmImf/ImfTiledMisc.cpp
 	Source/OpenEXR/IlmImf/ImfTiledMisc.h
 	Source/OpenEXR/IlmImf/ImfTiledOutputFile.cpp
 	Source/OpenEXR/IlmImf/ImfTiledOutputFile.h
+	Source/OpenEXR/IlmImf/ImfTiledOutputPart.cpp
+	Source/OpenEXR/IlmImf/ImfTiledOutputPart.h
 	Source/OpenEXR/IlmImf/ImfTiledRgbaFile.cpp
 	Source/OpenEXR/IlmImf/ImfTiledRgbaFile.h
 	Source/OpenEXR/IlmImf/ImfTimeCode.cpp
@@ -426,8 +497,14 @@ set(FreeImage_SOURCES
 	Source/OpenEXR/IlmImf/ImfWav.cpp
 	Source/OpenEXR/IlmImf/ImfWav.h
 	Source/OpenEXR/IlmImf/ImfXdr.h
+	Source/OpenEXR/IlmImf/ImfZip.cpp
+	Source/OpenEXR/IlmImf/ImfZip.h
 	Source/OpenEXR/IlmImf/ImfZipCompressor.cpp
 	Source/OpenEXR/IlmImf/ImfZipCompressor.h
+	Source/OpenEXR/IlmImf/b44ExpLogTable.cpp
+	Source/OpenEXR/IlmImf/b44ExpLogTable.h
+	Source/OpenEXR/IlmImf/dwaLookups.cpp
+	Source/OpenEXR/IlmImf/dwaLookups.h
 	Source/OpenEXR/IlmThread/IlmThread.cpp
 	Source/OpenEXR/IlmThread/IlmThread.h
 	Source/OpenEXR/IlmThread/IlmThreadMutex.cpp
