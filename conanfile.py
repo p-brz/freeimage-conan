@@ -1,14 +1,18 @@
-from conans import ConanFile, ConfigureEnvironment, tools
+from conans import ConanFile, CMake, ConfigureEnvironment
+from conans.tools import download, check_sha256, unzip, replace_in_file
 import os
 from os import path
-from shutil import copyfile
+from shutil import copy, copyfile
+
 
 class FreeImageConan(ConanFile):
     name    = "freeimage"
     version = "3.17.0"
     license = "FIPL(http://freeimage.sourceforge.net/freeimage-license.txt)", "GPLv2", "GPLv3"
+    description = "Open source image loading library"
 
     url     = "https://github.com/paulobrizolara/freeimage-conan"
+    generators = "cmake"
     settings = "os", "compiler", "arch"
 
     options = {
@@ -20,11 +24,11 @@ class FreeImageConan(ConanFile):
         "use_cxx_wrapper=True"
     )
 
-    exports = ("patches/*")
+    exports = ("CMakeLists.txt", "patches/*")
 
     #Downloading from sourceforge
     REPO = "http://downloads.sourceforge.net/project/freeimage/"
-    DOWNLOAD_LINK = REPO + "Source%20Distribution/3.17.0/FreeImage3170.zip?r=&ts=1479919512&use_mirror=nbtelecom"
+    DOWNLOAD_LINK = REPO + "Source%20Distribution/3.17.0/FreeImage3170.zip"
     #Folder inside the zip
     UNZIPPED_DIR = "FreeImage"
     FILE_SHA = 'fbfc65e39b3d4e2cb108c4ffa8c41fd02c07d4d436c594fff8dab1a6d5297f89'
@@ -32,23 +36,29 @@ class FreeImageConan(ConanFile):
     def source(self):
         zip_name = self.name + ".zip"
 
-        tools.download(self.DOWNLOAD_LINK, zip_name)
-        tools.check_sha256(zip_name, self.FILE_SHA)
-        tools.unzip(zip_name)
+        download(self.DOWNLOAD_LINK, zip_name)
+        check_sha256(zip_name, self.FILE_SHA)
+        unzip(zip_name)
         os.unlink(zip_name)
 
         self.apply_patches()
             
     def build(self):
-        env = ConfigureEnvironment(self)
+        if self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":
+            cmake = CMake(self.settings)
+            cd_build = 'cd ' + self.UNZIPPED_DIR
+            options = ''
+            self.print_and_run('%s && cmake . %s %s' % (cd_build, cmake.command_line, options))
+            self.print_and_run("%s && cmake --build . %s" % (cd_build, cmake.build_config))
+        else:
+            env = ConfigureEnvironment(self)
+            make_env = self.make_env()
+            env_line = "%s %s " % (env.command_line, make_env)
 
-        make_env = self.make_env()
-        env_line = "%s %s " % (env.command_line, make_env)
-        
-        self.make_and_install(env_line)
-            
-        if self.options.use_cxx_wrapper:
-            self.make_and_install(env_line, "-f Makefile.fip")
+            self.make_and_install(env_line)
+
+            if self.options.use_cxx_wrapper:
+                self.make_and_install(env_line, "-f Makefile.fip")
                
     def make_and_install(self, env_line, options=""):
         make_cmd = "%s make %s" % (env_line, options)
@@ -57,7 +67,12 @@ class FreeImageConan(ConanFile):
         self.print_and_run(make_cmd + " install"  , cwd=self.UNZIPPED_DIR)
 
     def package(self):
-        pass
+        include_dir = path.join(self.UNZIPPED_DIR, 'Source')
+        self.copy("FreeImage.h", dst="include", src=include_dir)
+        self.copy("*.lib", dst="lib", src=self.UNZIPPED_DIR, keep_path=False)
+        self.copy("*.a", dst="lib", src=self.UNZIPPED_DIR, keep_path=False)
+        self.copy("*.so", dst="lib", src=self.UNZIPPED_DIR, keep_path=False)
+        self.copy("*.dll", dst="bin", src=self.UNZIPPED_DIR, keep_path=False)
 
     def package_info(self):
         self.cpp_info.libs      = ["freeimage"]
@@ -68,7 +83,7 @@ class FreeImageConan(ConanFile):
     ################################ Helpers ######################################
 
     def print_and_run(self, cmd, **kw):
-        cwd_ = "[%s] " % kw.get('cwd') if kw.has_key('cwd') else ''
+        cwd_ = "[%s] " % kw.get('cwd') if 'cmd' in kw else ''
         
         self.output.info(cwd_ + str(cmd))
         self.run(cmd, **kw)
@@ -99,11 +114,18 @@ class FreeImageConan(ConanFile):
         self.output.info("Applying patches")
         
         #Copy "patch" files
+        copy('CMakeLists.txt', self.UNZIPPED_DIR)
         self.copy_tree("patches", self.UNZIPPED_DIR)
 
         self.patch_android_swab_issues()
         self.patch_android_neon_issues()
         
+        # snprintf was added in VS2015
+        if self.settings.compiler == "Visual Studio" and self.settings.compiler.version >= 14:
+            replace_in_file(path.join(self.UNZIPPED_DIR, 'Source/LibRawLite/internal/defines.h'), '#define snprintf _snprintf', '')
+            replace_in_file(path.join(self.UNZIPPED_DIR, 'Source/ZLib/gzguts.h'), '#  define snprintf _snprintf', '')
+            replace_in_file(path.join(self.UNZIPPED_DIR, 'Source/LibTIFF4/tif_config.h'), '#define snprintf _snprintf', '')
+
     def patch_android_swab_issues(self):
         librawlite = path.join(self.UNZIPPED_DIR, "Source", "LibRawLite")
         missing_swab_files = [
@@ -114,7 +136,7 @@ class FreeImageConan(ConanFile):
         
         for f in missing_swab_files:
             self.output.info("patching file '%s'" % f)
-            tools.replace_in_file(f, "#include <unistd.h>", replaced_include)
+            replace_in_file(f, "#include <unistd.h>", replaced_include)
 
     def patch_android_neon_issues(self):
         # avoid using neon
@@ -122,7 +144,7 @@ class FreeImageConan(ConanFile):
         rm_neon_files = [   path.join(libwebp_src, "dsp", "dsp.h") ]
         for f in rm_neon_files:
             self.output.info("patching file '%s'" % f)
-            tools.replace_in_file(f, "#define WEBP_ANDROID_NEON", "")
+            replace_in_file(f, "#define WEBP_ANDROID_NEON", "")
 
     def copy_tree(self, src_root, dst_root):
 #        for p in self.patches:
