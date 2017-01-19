@@ -13,11 +13,15 @@ class FreeImageConan(ConanFile):
 
     options = {
         "shared"          : [True, False],
-        "use_cxx_wrapper" : [True, False]
+        "use_cxx_wrapper" : [True, False],
+        
+        # if set, build library without "version number" (eg.: not generate libfreeimage-3-17.0.so)
+        "no_soname"       : [True, False] 
     }
     default_options = (
         "shared=False",
-        "use_cxx_wrapper=True"
+        "use_cxx_wrapper=True",
+        "no_soname=False"
     )
 
     exports = ("patches/*")
@@ -28,6 +32,10 @@ class FreeImageConan(ConanFile):
     #Folder inside the zip
     UNZIPPED_DIR = "FreeImage"
     FILE_SHA = 'fbfc65e39b3d4e2cb108c4ffa8c41fd02c07d4d436c594fff8dab1a6d5297f89'
+
+    def configure(self):
+        if self.settings.os == "Android":
+            self.options.no_soname = True
 
     def source(self):
         zip_name = self.name + ".zip"
@@ -77,13 +85,16 @@ class FreeImageConan(ConanFile):
         env = []
         
         if self.options.shared: #valid only for modified makefiles
-            env.append("USE_SHARED=1")
+            env.append("BUILD_SHARED=1")
         
         if not hasattr(self, 'package_folder'):
             self.package_folder = "dist"
         
         if self.settings.os == "Android":
+#        if self.options.no_swab:
             env.append("NO_SWAB=1")
+        if self.options.no_soname:
+            env.append("NO_SONAME=1")
         
         env.append("DESTDIR=" + self.package_folder)
         env.append("INCDIR=" + path.join(self.package_folder, "include"))
