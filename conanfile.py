@@ -56,20 +56,28 @@ class FreeImageConan(ConanFile):
             
     def build(self):
         if self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":
-            cmake = CMake(self.settings)
-            cd_build = 'cd ' + self.UNZIPPED_DIR
-            options = ''
-            self.print_and_run('%s && cmake . %s %s' % (cd_build, cmake.command_line, options))
-            self.print_and_run("%s && cmake --build . %s" % (cd_build, cmake.build_config))
+            self.build_visualstudio()
         else:
-            env = ConfigureEnvironment(self)
-            make_env = self.make_env()
-            env_line = "%s %s " % (env.command_line, make_env)
+            self.build_make()
+            
+    def build_visualstudio(self):
+        cmake = CMake(self.settings)
+        cd_build = 'cd ' + self.UNZIPPED_DIR
+        options = ''
+        self.print_and_run('%s && cmake . %s %s' % (cd_build, cmake.command_line, options))
+        self.print_and_run("%s && cmake --build . %s" % (cd_build, cmake.build_config))
+         
+    def build_make(self):
+        env = ConfigureEnvironment(self)
+        make_env = self.make_env()
+        env_line = "%s %s " % (env.command_line, make_env)
 
-            self.make_and_install(env_line)
+        self.make_and_install(env_line)
 
-            if self.options.use_cxx_wrapper:
-                self.make_and_install(env_line, "-f Makefile.fip")
+        if self.options.use_cxx_wrapper:
+            self.make_and_install(env_line, "-f Makefile.fip")
+           
+        self.already_installed = True
                
     def make_and_install(self, env_line, options=""):
         make_cmd = "%s make %s" % (env_line, options)
@@ -78,12 +86,19 @@ class FreeImageConan(ConanFile):
         self.print_and_run(make_cmd + " install"  , cwd=self.UNZIPPED_DIR)
 
     def package(self):
+        if getattr(self, 'already_installed', False):
+            # files already installed in build step
+            return
+            
         include_dir = path.join(self.UNZIPPED_DIR, 'Source')
         self.copy("FreeImage.h", dst="include", src=include_dir)
-        self.copy("*.lib", dst="lib", src=self.UNZIPPED_DIR, keep_path=False)
-        self.copy("*.a", dst="lib", src=self.UNZIPPED_DIR, keep_path=False)
-        self.copy("*.so", dst="lib", src=self.UNZIPPED_DIR, keep_path=False)
-        self.copy("*.dll", dst="bin", src=self.UNZIPPED_DIR, keep_path=False)
+        
+        if self.options.shared:
+            self.copy("*.so", dst="lib", src=self.UNZIPPED_DIR, keep_path=False)
+            self.copy("*.dll", dst="bin", src=self.UNZIPPED_DIR, keep_path=False)
+        else:
+            self.copy("*.lib", dst="lib", src=self.UNZIPPED_DIR, keep_path=False)
+            self.copy("*.a", dst="lib", src=self.UNZIPPED_DIR, keep_path=False)
 
     def package_info(self):
         self.cpp_info.libs      = ["freeimage"]
