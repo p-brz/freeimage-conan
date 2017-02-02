@@ -4,7 +4,7 @@ from os import path
 
 username = os.getenv("CONAN_USERNAME", "paulobrizolara")
 channel = os.getenv("CONAN_CHANNEL", "testing")
-version = "3.17.0"
+version = "3.17.0.1"
 package = "freeimage"
 
 class TestConan(ConanFile):

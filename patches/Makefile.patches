@@ -1,12 +1,17 @@
 FLAGS = 
 
+SRCS += Source/LibPNG/arm/arm_init.c
+SRCS += Source/LibPNG/arm/filter_neon_intrinsics.c
+SRCS += Source/LibPNG/arm/filter_neon.S
+
 ifdef NO_SWAB
     SRCS += swab.c
     FLAGS += -DNO_SWAB
-    # Update modules
-    MODULES = $(SRCS:.c=.o)
-    MODULES := $(MODULES:.cpp=.o)
 endif
+
+# Update modules
+MODULES = $(SRCS:.c=.o)
+MODULES := $(MODULES:.cpp=.o)
 
 ifdef ANDROID
     $(info "Building for android")

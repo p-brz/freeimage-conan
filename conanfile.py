@@ -7,7 +7,7 @@ from shutil import copy, copyfile
 
 class FreeImageConan(ConanFile):
     name    = "freeimage"
-    version = "3.17.0"
+    version = "3.17.0.1"
     license = "FIPL(http://freeimage.sourceforge.net/freeimage-license.txt)", "GPLv2", "GPLv3"
     description = "Open source image loading library"
 
