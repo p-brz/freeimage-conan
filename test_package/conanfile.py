@@ -2,9 +2,9 @@ from conans import ConanFile, CMake
 import os
 from os import path
 
-username = os.getenv("CONAN_USERNAME", "paulobrizolara")
+username = os.getenv("CONAN_USERNAME", "pbrz")
 channel = os.getenv("CONAN_CHANNEL", "testing")
-version = "3.17.0.1"
+version = "3.17.0.2"
 package = "freeimage"
 
 class TestConan(ConanFile):

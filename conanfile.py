@@ -1,17 +1,17 @@
-from conans import ConanFile, CMake, ConfigureEnvironment
+from conans import ConanFile, CMake, AutoToolsBuildEnvironment, tools
 from conans.tools import download, check_sha256, unzip, replace_in_file
 import os
 from os import path
 from shutil import copy, copyfile
 
 
-class FreeImageConan(ConanFile):
+class Recipe(ConanFile):
     name    = "freeimage"
-    version = "3.17.0.1"
+    version = "3.17.0.2"
     license = "FIPL(http://freeimage.sourceforge.net/freeimage-license.txt)", "GPLv2", "GPLv3"
     description = "Open source image loading library"
 
-    url     = "https://github.com/paulobrizolara/freeimage-conan"
+    url     = "https://github.com/p-brz/freeimage-conan"
     generators = "cmake"
     settings = "os", "compiler", "arch"
 
@@ -34,7 +34,7 @@ class FreeImageConan(ConanFile):
     REPO = "http://downloads.sourceforge.net/project/freeimage/"
     DOWNLOAD_LINK = REPO + "Source%20Distribution/3.17.0/FreeImage3170.zip"
     #Folder inside the zip
-    UNZIPPED_DIR = "FreeImage"
+    SRCDIR = "FreeImage"
     FILE_SHA = 'fbfc65e39b3d4e2cb108c4ffa8c41fd02c07d4d436c594fff8dab1a6d5297f89'
 
     def configure(self):
@@ -45,6 +45,10 @@ class FreeImageConan(ConanFile):
             self.options.use_cxx_wrapper = False
 
     def source(self):
+        self.download_source()
+        self.apply_patches()
+
+    def download_source(self):
         zip_name = self.name + ".zip"
 
         download(self.DOWNLOAD_LINK, zip_name)
@@ -52,114 +56,101 @@ class FreeImageConan(ConanFile):
         unzip(zip_name)
         os.unlink(zip_name)
 
-        self.apply_patches()
-            
     def build(self):
-        if self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":
+        if self.settings.compiler == "Visual Studio":
             self.build_visualstudio()
         else:
             self.build_make()
             
     def build_visualstudio(self):
         cmake = CMake(self.settings)
-        cd_build = 'cd ' + self.UNZIPPED_DIR
         options = ''
-        self.print_and_run('%s && cmake . %s %s' % (cd_build, cmake.command_line, options))
-        self.print_and_run("%s && cmake --build . %s" % (cd_build, cmake.build_config))
+        self.print_and_run('cmake . %s %s' % (cmake.command_line, options), cwd=self.SRCDIR)
+        self.print_and_run("cmake --build . %s" % (cmake.build_config), cwd=self.SRCDIR)
          
     def build_make(self):
-        env = ConfigureEnvironment(self)
-        make_env = self.make_env()
-        env_line = "%s %s " % (env.command_line, make_env)
-
-        self.make_and_install(env_line)
-
-        if self.options.use_cxx_wrapper:
-            self.make_and_install(env_line, "-f Makefile.fip")
-           
-        self.already_installed = True
+        with tools.environment_append(self.make_env()):
+            self.make_and_install()
                
-    def make_and_install(self, env_line, options=""):
-        make_cmd = "%s make %s" % (env_line, options)
-     
-        self.print_and_run(make_cmd               , cwd=self.UNZIPPED_DIR)
-        self.print_and_run(make_cmd + " install"  , cwd=self.UNZIPPED_DIR)
+    def make_and_install(self):
+        options= "" if not self.options.use_cxx_wrapper else "-f Makefile.fip"
+
+        make_cmd = "make %s" % (options)
+
+        self.print_and_run(make_cmd               , cwd=self.SRCDIR)
+        self.print_and_run(make_cmd + " install"  , cwd=self.SRCDIR)
 
     def package(self):
-        if getattr(self, 'already_installed', False):
-            # files already installed in build step
+        if self.settings.compiler != "Visual Studio":
+            self.output.info("files already installed in build step")
             return
             
-        include_dir = path.join(self.UNZIPPED_DIR, 'Source')
+        include_dir = path.join(self.SRCDIR, 'Source')
         self.copy("FreeImage.h", dst="include", src=include_dir)
         
         if self.options.shared:
-            self.copy("*.so", dst="lib", src=self.UNZIPPED_DIR, keep_path=False)
-            self.copy("*.dll", dst="bin", src=self.UNZIPPED_DIR, keep_path=False)
+            self.copy("*.so", dst="lib", src=self.SRCDIR, keep_path=False)
+            self.copy("*.dll", dst="bin", src=self.SRCDIR, keep_path=False)
         else:
-            self.copy("*.lib", dst="lib", src=self.UNZIPPED_DIR, keep_path=False)
-            self.copy("*.a", dst="lib", src=self.UNZIPPED_DIR, keep_path=False)
+            self.copy("*.lib", dst="lib", src=self.SRCDIR, keep_path=False)
+            self.copy("*.a", dst="lib", src=self.SRCDIR, keep_path=False)
 
     def package_info(self):
-        self.cpp_info.libs      = ["freeimage"]
 
         if self.options.use_cxx_wrapper:
             self.cpp_info.libs.append("freeimageplus")
+        else:
+            self.cpp_info.libs      = ["freeimage"]
 
     ################################ Helpers ######################################
 
     def print_and_run(self, cmd, **kw):
-        cwd_ = "[%s] " % kw.get('cwd') if 'cmd' in kw else ''
+        cwd_ = "[%s] " % kw.get('cwd') if 'cwd' in kw else ''
         
         self.output.info(cwd_ + str(cmd))
         self.run(cmd, **kw)
         
     def make_env(self):
-        env = []
-        
+        env_build = AutoToolsBuildEnvironment(self)
+
+        env = env_build.vars
+
+        # AutoToolsBuildEnvironment sets CFLAGS and CXXFLAGS, so the default value
+        # on the makefile is overwriten. So, we set here the default values again
+        env["CFLAGS"] += " -O3 -fPIC -fexceptions -fvisibility=hidden"
+        env["CXXFLAGS"] += " -O3 -fPIC -fexceptions -fvisibility=hidden -Wno-ctor-dtor-privacy"
+
         if self.options.shared: #valid only for modified makefiles
-            env.append("BUILD_SHARED=1")
-        
+            env["BUILD_SHARED"] = "1"
+        if self.settings.os == "Android":
+            env["NO_SWAB"] = "1"
+        if self.options.no_soname:
+            env["NO_SONAME"] = "1"
+
         if not hasattr(self, 'package_folder'):
             self.package_folder = "dist"
-        
-        if self.settings.os == "Android":
-#        if self.options.no_swab:
-            env.append("NO_SWAB=1")
-        if self.options.no_soname:
-            env.append("NO_SONAME=1")
-        
-        env.append("DESTDIR=" + self.package_folder)
-        env.append("INCDIR=" + path.join(self.package_folder, "include"))
-        env.append("INSTALLDIR=" + path.join(self.package_folder, "lib"))
+
+        env["DESTDIR"]    = self.package_folder
+        env["INCDIR"]     = path.join(self.package_folder, "include")
+        env["INSTALLDIR"] = path.join(self.package_folder, "lib")
             
-        return " ".join(env)
-
-    def rename_file(self, dir, filename, newname):
-        os.rename(path.join(dir, filename), path.join(dir, newname))
-
+        return env
 
     def apply_patches(self):
         self.output.info("Applying patches")
         
         #Copy "patch" files
-        copy('CMakeLists.txt', self.UNZIPPED_DIR)
-        self.copy_tree("patches", self.UNZIPPED_DIR)
+        copy('CMakeLists.txt', self.SRCDIR)
+        self.copy_tree("patches", self.SRCDIR)
 
         self.patch_android_swab_issues()
         self.patch_android_neon_issues()
         
         if self.settings.compiler == "Visual Studio":
-            replace_in_file(path.join(self.UNZIPPED_DIR, 'Source/FreeImage/Plugin.cpp'), 's_plugins->AddNode(InitWEBP);', '')
-            replace_in_file(path.join(self.UNZIPPED_DIR, 'Source/FreeImage/Plugin.cpp'), 's_plugins->AddNode(InitJXR);', '')
-            # snprintf was added in VS2015
-            if self.settings.compiler.version >= 14:
-                replace_in_file(path.join(self.UNZIPPED_DIR, 'Source/LibRawLite/internal/defines.h'), '#define snprintf _snprintf', '')
-                replace_in_file(path.join(self.UNZIPPED_DIR, 'Source/ZLib/gzguts.h'), '#  define snprintf _snprintf', '')
-                replace_in_file(path.join(self.UNZIPPED_DIR, 'Source/LibTIFF4/tif_config.h'), '#define snprintf _snprintf', '')
+            self.patch_visual_studio()
 
     def patch_android_swab_issues(self):
-        librawlite = path.join(self.UNZIPPED_DIR, "Source", "LibRawLite")
+        librawlite = path.join(self.SRCDIR, "Source", "LibRawLite")
         missing_swab_files = [
             path.join(librawlite, "dcraw", "dcraw.c"),
             path.join(librawlite, "internal", "defines.h")
@@ -172,15 +163,22 @@ class FreeImageConan(ConanFile):
 
     def patch_android_neon_issues(self):
         # avoid using neon
-        libwebp_src = path.join(self.UNZIPPED_DIR, "Source", "LibWebP", "src")
+        libwebp_src = path.join(self.SRCDIR, "Source", "LibWebP", "src")
         rm_neon_files = [   path.join(libwebp_src, "dsp", "dsp.h") ]
         for f in rm_neon_files:
             self.output.info("patching file '%s'" % f)
             replace_in_file(f, "#define WEBP_ANDROID_NEON", "")
 
+    def patch_visual_studio(self):
+        replace_in_file(path.join(self.SRCDIR, 'Source/FreeImage/Plugin.cpp'), 's_plugins->AddNode(InitWEBP);', '')
+        replace_in_file(path.join(self.SRCDIR, 'Source/FreeImage/Plugin.cpp'), 's_plugins->AddNode(InitJXR);', '')
+        # snprintf was added in VS2015
+        if self.settings.compiler.version >= 14:
+            replace_in_file(path.join(self.SRCDIR, 'Source/LibRawLite/internal/defines.h'), '#define snprintf _snprintf', '')
+            replace_in_file(path.join(self.SRCDIR, 'Source/ZLib/gzguts.h'), '#  define snprintf _snprintf', '')
+            replace_in_file(path.join(self.SRCDIR, 'Source/LibTIFF4/tif_config.h'), '#define snprintf _snprintf', '')
+
     def copy_tree(self, src_root, dst_root):
-#        for p in self.patches:
-#        for p in os.listdir('patches'):
         for root, dirs, files in os.walk(src_root):
             for d in dirs:
                 dst_dir = path.join(dst_root, d)
